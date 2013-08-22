@@ -1,0 +1,442 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script type="text/javascript" src="helper.js"></script>
+<style type="text/css">
+    div {
+        margin: 0;
+        padding: 0;
+    }
+
+    span {
+        margin: 0;
+        padding: 0;
+
+    }
+
+    .whiteOthello {
+        background-color: white;
+
+        -webkit-box-shadow: 0.1em 0.1em black;
+        -moz-box-shadow: 0.1em 0.1em black;
+        box-shadow: 0.1em 0.1em black;
+    }
+
+    .blackOthello {
+        background-color: black;
+
+        -webkit-box-shadow: 0.1em 0.1em #CCC;
+        -moz-box-shadow: 0.1em 0.1em #CCC;
+        box-shadow: 0.1em 0.1em #CCC;
+    }
+
+    .othelloSquare {
+        width: 50px;
+        height: 50px;
+        background-color: green;
+        float: left;
+        border: 1px solid;
+        padding-top: 8px;
+        padding-left: 8px;
+    }
+
+    .othelloCircle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+
+    .clearLeft {
+        clear: left;
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+<title></title>
+<script type="text/javascript">
+$(document).ready(function () {
+
+            var othelloBox = $('#othelloBox');
+            var othelloSquare = $('.othelloSquare');
+            var othelloWhite = $('.whiteOthello').clone().removeClass('hidden');
+            var othelloBlack = $('.blackOthello').clone().removeClass('hidden');
+            var clickedTiles = [];
+            var blacksTurn = true;
+            var tile;
+
+            /**
+             * Create a simple Grid by cloning a square again and again.
+             * Apply a clear:left to every 8th element to make a square.
+             */
+            function createGrid() {
+                var gridSize = 8;
+                for (var i = 0; i < gridSize; i++) {
+                    for (var i2 = 0; i2 < gridSize; i2++) {
+                        //TODO remove clone out of loop
+                        tile = othelloSquare.clone().removeClass('hidden').appendTo(othelloBox).addClass('tileNum' + i + i2);
+                        if (i2 == 0) {
+                            tile.addClass('clearLeft');
+                        }
+                    }
+                }
+
+                //attach on click event
+                othelloBox.on('click', '.othelloSquare', clickOnOthelloSquare)
+            }
+
+
+            /**
+             * Add default tiles.
+             * Add the default tiles number to the array which tracks all the tiles with circles on them
+             */
+            function addDefaultCircles() {
+                var tileNum33 = $('.tileNum' + 33);
+                var tileNum34 = $('.tileNum' + 34);
+
+                var tileNum43 = $('.tileNum' + 43);
+                var tileNum44 = $('.tileNum' + 44);
+                clickedTiles.push({nextTileObj: tileNum33,
+                    nextTileNum: '33'});
+                clickedTiles.push({nextTileObj: tileNum34,
+                    nextTileNum: '34'});
+                clickedTiles.push({nextTileObj: tileNum43,
+                    nextTileNum: '43'});
+                clickedTiles.push({nextTileObj: tileNum44,
+                    nextTileNum: '44'});
+                tileNum33.append(othelloBlack.clone());
+                tileNum34.append(othelloWhite.clone());
+                tileNum44.append(othelloBlack.clone());
+                tileNum43.append(othelloWhite.clone());
+            }
+
+            /**
+             * callback to handle clicking on a square.
+             */
+            function clickOnOthelloSquare() {
+                /**
+                 * Thee square that was clicked.
+                 * @type {*|jQuery|HTMLElement}
+                 */
+                var $this = $(this);
+                /**
+                 * value of the class attribute of the clicked square.
+                 * @type {*}
+                 */
+                var theClass = $this.attr('class');
+                /**
+                 * the first element of this array is the tileNumber.
+                 * @type {Array|{index: number, input: string}}
+                 */
+                var tileNumArray = theClass.match(/tileNum(\d*)/);
+                /**
+                 * Array of all the tiles in adjacent to the clicked tile.
+                 */
+                var adjacentTiles;
+                var validMoveConfirmed = false;
+                if (adjacentTiles = isValidMove(tileNumArray[1], $this)) {
+//                    console.log(adjacentTiles);
+                    //for each tile check direction, keep looking for tiles
+                    //show circle
+                    validMoveConfirmed = isTheCircleTurningAnyTiles(tileNumArray[1], adjacentTiles, true);
+                    if (validMoveConfirmed) {
+                        //find color and append circle to tile.
+                        var color = blacksTurn ? 'black' : 'white';
+                        if (color == 'black')  $this.append(othelloBlack.clone());
+                        else if (color == 'white')  $this.append(othelloWhite.clone());
+                        //keep track of clicked tiles.
+                        clickedTiles.push({
+                            nextTileObj: $this,
+                            nextTileNum: tileNumArray[1]
+                        });
+
+                        //switch turns.
+                        blacksTurn = blacksTurn ? false : true;
+
+                        determineFinalAvailableTurn();
+//                        if (turnChanged){
+//                            blacksTurn = blacksTurn ? false : true;
+//                        }
+                        console.log('blacks- ' + blacksTurn);
+                    }
+
+                }
+//                console.log(tileNumArray[1]);
+                if (clickedTiles.length == 64) {
+                    calculateWinner();
+                }
+            }
+
+            /**
+             * Calcualte winner by counting number of white tiles.
+             * TODO Check available moves and call function after every turn.
+             */
+            function calculateWinner() {
+                var whiteOthello = $('#othelloBox').find('.whiteOthello').length;
+                if (whiteOthello > 32) {
+                    alert('white wins');
+                }
+                else {
+                    alert('black wins')
+                }
+                //TODO add code for draw.
+            }
+
+            /**
+             *
+             * @returns {boolean}
+             */
+            function determineFinalAvailableTurn() {
+                var validTiles = [];
+                var turnChanged = false;
+                //find all adjcanet tiless to the clicked tiles.
+                for (var t = 0; t < clickedTiles.length; t++) {
+
+//                    console.log(clickedTiles);
+                    var numObj = getRightLeftDigits(clickedTiles[t].nextTileNum);
+                    var rightDigit = numObj.right;
+                    var leftDigit = numObj.left;
+
+                    var combinations = [0, -1, 1 ];
+                    var adjacentFound = false;
+
+                    for (var i = 0; i < combinations.length; i++) {
+                        for (var i2 = 0; i2 < combinations.length; i2++) {
+                            var right = rightDigit + combinations[i];
+                            var left = leftDigit + combinations[i2];
+
+                            //remove tiles outside the square.
+                            if (right > -1 && right < 8 && left > -1 && left < 8) {
+                                var adjacentTileId = left + '' + right;
+                                validTiles.push(adjacentTileId);
+                            }
+                        }
+                    }
+                }
+                //remove dupes
+                var validTilesNoDupes = [];
+                //TODO understand $.each
+                $.each(validTiles, function (i, el) {
+                    if ($.inArray(el, validTilesNoDupes) === -1) validTilesNoDupes.push(el);
+                });
+//                console.log('validTilesNoDupes'+validTilesNoDupes);
+
+                //remove clicked tiles
+                var y = clickedTiles.length;
+                var clickedTilesNums = [];
+                while (y--) {
+                    clickedTilesNums.push(clickedTiles[y].nextTileNum);
+
+                }
+                // TODO understand $.grep
+                var validTilesMinusClickedTiles = $.grep(validTilesNoDupes, function (item) {
+                    return $.inArray(item, clickedTilesNums) < 0;
+                });
+//                console.log('validTilesMinusClickedTiles'+validTilesMinusClickedTiles);
+
+                var validMoveFound = false;
+                //Check if  the validTilesMinusClickedTiles array is there any possibility of a valid move. If there is return true ;
+                for (var u = 0; u < validTilesMinusClickedTiles.length; u++) {
+                    if (adjacentTiles = isValidMove(validTilesMinusClickedTiles[u], $('.tileNum' + validTilesMinusClickedTiles[u]))) {
+//                    console.log(adjacentTiles);
+                        //for each tile check direction, keep looking for tiles
+                        //show circle
+                        if (isTheCircleTurningAnyTiles(validTilesMinusClickedTiles[u], adjacentTiles, false)) {
+                            validMoveFound = true;
+                        }
+                    }
+                }
+                if (!validMoveFound) {
+                    blacksTurn = blacksTurn ? false : true;
+                }
+            }
+
+            /**
+             * Convert a array of tiles , by removing a class and adding a class.
+             * @param tilesToFlip
+             */
+            function changeTileColor(tilesToFlip) {
+                for (var i = 0; i < tilesToFlip.length; i++) {
+                    var $targetTile = tilesToFlip[i].nextTileObj;
+
+                    if (blacksTurn) {
+                        $targetTile.find('div').eq(0).removeClass('whiteOthello').addClass('blackOthello');
+                    }
+                    else {
+                        $targetTile.find('div').eq(0).removeClass('blackOthello').addClass('whiteOthello');
+                    }
+                }
+            }
+
+            /**
+             * split a 2 digit number
+             * @param number
+             * @returns {{left: number, right: number}}
+             */
+            function getRightLeftDigits(number) {
+                var rightDigit = number % 10;
+                var leftDigit = ( number - rightDigit ) / 10;
+                return {
+                    left: leftDigit,
+                    right: rightDigit
+                }
+            }
+
+            /**
+             * For a possible click determine whether any tiles will be flipped. Flip those tiles if boolean is true.
+             * @param tileNum tileNum of clicked Tile
+             * @param adjacentTiles Tiles surrounding the clicked tiles
+             * @param turnsTiles Whether to turn tiles or not.
+             * @returns {boolean}
+             */
+            function isTheCircleTurningAnyTiles(tileNum, adjacentTiles, turnsTiles) {
+                var targetTileSeparatedDigitsObj = getRightLeftDigits(tileNum);
+
+                // is converting some piece.
+                for (var i = 0; i < adjacentTiles.length; i++) {
+                    //used store jquery objects in adjacentTIles[i][1] ;
+                    var separatedDigitsObj = getRightLeftDigits(adjacentTiles[i][0]);
+                    var leftDifference = separatedDigitsObj.left - targetTileSeparatedDigitsObj.left;
+                    var rightDifference = separatedDigitsObj.right - targetTileSeparatedDigitsObj.right;
+                    var nextTileLeft;
+                    var nextTileRight;
+                    var tilesToFlip = [];
+                    do {
+
+                        nextTileRight = targetTileSeparatedDigitsObj.right + rightDifference;
+                        nextTileLeft = targetTileSeparatedDigitsObj.left + leftDifference;
+                        if (leftDifference > 0) {
+                            leftDifference++;
+                        }
+                        else if (leftDifference < 0) {
+                            leftDifference--;
+                        }
+                        if (rightDifference > 0) {
+                            rightDifference++;
+                        }
+                        else if (rightDifference < 0) {
+                            rightDifference--;
+                        }
+                        var $nextTile = $('.tileNum' + nextTileLeft + '' + nextTileRight);
+                        var color = blacksTurn ? 'black' : 'white';
+                        // in a particular direction look for tilee of the same color.BUT MAKE SURE THERE IS NO EMPTY SQUARE IN BETWEEN
+                        if (isCircleOnTileOfColor($nextTile, color)) {
+                            if (turnsTiles) {
+                                changeTileColor(tilesToFlip);
+                            }
+                            var validMoveConfirmed = true;
+                            //stop looking in direction once a tile with a circle of the same color is found.
+                            break;
+                        }
+                        else {
+                            //edge case. If there is an empty tile before a tile of the same color.
+                            if (!isCircleOnTile($nextTile)) {
+                                break;
+                            }
+                            tilesToFlip.push({
+                                nextTileObj: $nextTile,
+                                nextTileLeft: nextTileLeft,
+                                nextTileRight: nextTileRight
+                            });
+                        }
+                    }
+                    while (nextTileLeft > -1 && nextTileLeft < 8 && nextTileRight > -1 && nextTileRight < 8) ;
+                }
+                return validMoveConfirmed;
+            }
+
+            /**
+             * Checks on click if (a) clicked tile already has a circle in it (b) is adjacent to an existing tile OF THE OPPOSITE COLOR.
+             * @param tileNum The tile class Number of the clicked tile.
+             * @param $targetTile The clicked Tile
+             * @returns {*} Returns array of adjacent tiles if the move is valid
+             */
+            function isValidMove(tileNum, $targetTile) {
+                // is not on existing circle (check for contents of square)
+                if (isCircleOnTile($targetTile)) {
+                    return false;
+                }
+
+                // is adjacent to existing piece
+                // max 8 possible surrounding pieces. any combination of -1 and +1 and 0 except the square itself (0,0)
+                var rightDigit = tileNum % 10;
+                var leftDigit = ( tileNum - rightDigit ) / 10;
+                var combinations = [0, -1, 1 ];
+                var adjacentFound = false;
+                /**
+                 * All the tiles adjacent to our targetTIle that DO have a circle in them OF THE OPPOSITE COLOR!.
+                 * @type {Array}
+                 */
+                var adjacentTiles = [];
+
+                for (var i = 0; i < combinations.length; i++) {
+                    for (var i2 = 0; i2 < combinations.length; i2++) {
+                        var right = rightDigit + combinations[i];
+                        var left = leftDigit + combinations[i2];
+                        var adjacentTileId = left + '' + right;
+                        var $adjacentTile = $('.tileNum' + adjacentTileId);
+                        var color = blacksTurn ? 'white' : 'black';
+
+                        // If the color of the adjacent tile is opposite to that of the target tiles circle add it to our list (of adjacent tiles)
+                        if (isCircleOnTileOfColor($adjacentTile, color)) {
+                            adjacentTiles.push([adjacentTileId, $adjacentTile]);
+                            adjacentFound = true;
+                        }
+                    }
+                }
+                if (!adjacentFound) {
+                    return false;
+                }
+                else {
+                    return adjacentTiles;
+                }
+
+            }
+
+            /**
+             * Checks if there is any div inside our targetTile of a particular color.
+             * @param $targetTile
+             * @param color
+             * @returns {boolean}
+             */
+            function isCircleOnTileOfColor($targetTile, color) {
+
+                if ($targetTile.html() && $targetTile.html().match('' + color)) {
+                    return true;
+                }
+                return false;
+            }
+
+            /**
+             * Just checks if there is any div(circle) inside our tiie(div)
+             * @param $targetTile
+             * @returns {boolean}
+             */
+            function isCircleOnTile($targetTile) {
+//                console.log($targetTile.html() );
+                if ($targetTile.html()) {
+                    return true;
+                }
+                return false;
+            }
+
+            createGrid();
+            addDefaultCircles();
+        }
+
+)
+;
+
+</script>
+
+</head>
+<body>
+<div class="hidden othelloSquare"></div>
+<div class="othelloCircle hidden whiteOthello"></div>
+<div class="othelloCircle hidden blackOthello"></div>
+<div id="othelloBox"></div>
+</body>
+</html>
